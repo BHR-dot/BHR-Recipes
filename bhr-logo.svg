@@ -1,0 +1,53 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+  <defs>
+    <linearGradient id="bgGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#1a1c21;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#111214;stop-opacity:1" />
+    </linearGradient>
+    <linearGradient id="fireGrad" x1="0%" y1="100%" x2="30%" y2="0%">
+      <stop offset="0%" style="stop-color:#e8722a;stop-opacity:1" />
+      <stop offset="60%" style="stop-color:#f5a623;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#fff4e0;stop-opacity:0.9" />
+    </linearGradient>
+    <linearGradient id="plateGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" style="stop-color:#3a3d46" />
+      <stop offset="100%" style="stop-color:#22252b" />
+    </linearGradient>
+  </defs>
+
+  <!-- Background rounded rect -->
+  <rect width="512" height="512" rx="100" fill="url(#bgGrad)"/>
+
+  <!-- Barbell bar (horizontal) -->
+  <rect x="60" y="242" width="392" height="28" rx="14" fill="url(#plateGrad)" stroke="#444" stroke-width="1.5"/>
+
+  <!-- Left outer plate -->
+  <rect x="62" y="196" width="38" height="120" rx="10" fill="url(#plateGrad)" stroke="#555" stroke-width="1.5"/>
+  <!-- Left inner plate -->
+  <rect x="108" y="210" width="26" height="92" rx="8" fill="url(#plateGrad)" stroke="#555" stroke-width="1.5"/>
+
+  <!-- Right outer plate -->
+  <rect x="412" y="196" width="38" height="120" rx="10" fill="url(#plateGrad)" stroke="#555" stroke-width="1.5"/>
+  <!-- Right inner plate -->
+  <rect x="378" y="210" width="26" height="92" rx="8" fill="url(#plateGrad)" stroke="#555" stroke-width="1.5"/>
+
+  <!-- Flame shape — center above barbell -->
+  <!-- Main flame body -->
+  <path d="M256 80 C240 100 210 130 215 165 C218 188 230 195 230 195 C225 175 238 158 248 148 C245 168 252 182 256 195 C260 182 267 168 264 148 C274 158 287 175 282 195 C282 195 294 188 297 165 C302 130 272 100 256 80Z" fill="url(#fireGrad)" opacity="0.95"/>
+  <!-- Inner flame highlight -->
+  <path d="M256 110 C248 128 238 148 242 168 C244 178 250 184 253 190 C254 183 255 174 258 166 C261 174 262 183 263 190 C266 184 272 178 274 168 C278 148 264 128 256 110Z" fill="#fff8ee" opacity="0.5"/>
+
+  <!-- BHR letters across the bar -->
+  <!-- B -->
+  <text x="154" y="268" font-family="'Arial Black', 'Helvetica Neue', sans-serif" font-weight="900" font-size="58" fill="#e8722a" text-anchor="middle" dominant-baseline="middle" letter-spacing="-1">B</text>
+  <!-- H -->
+  <text x="256" y="268" font-family="'Arial Black', 'Helvetica Neue', sans-serif" font-weight="900" font-size="58" fill="#f0f0f0" text-anchor="middle" dominant-baseline="middle" letter-spacing="-1">H</text>
+  <!-- R -->
+  <text x="358" y="268" font-family="'Arial Black', 'Helvetica Neue', sans-serif" font-weight="900" font-size="58" fill="#e8722a" text-anchor="middle" dominant-baseline="middle" letter-spacing="-1">R</text>
+
+  <!-- Tagline -->
+  <text x="256" y="370" font-family="'Arial', 'Helvetica Neue', sans-serif" font-weight="600" font-size="20" fill="#8a8f9a" text-anchor="middle" letter-spacing="4">FUEL YOUR BEST</text>
+
+  <!-- Subtle bottom accent line -->
+  <rect x="196" y="392" width="120" height="3" rx="2" fill="#e8722a" opacity="0.6"/>
+</svg>

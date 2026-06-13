@@ -1,0 +1,630 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover"/>
+  <meta name="theme-color" content="#e8722a"/>
+  <meta name="apple-mobile-web-app-capable" content="yes"/>
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"/>
+  <meta name="apple-mobile-web-app-title" content="BHR"/>
+  <meta name="description" content="Benjamin's Healthy Recipes — high-protein meal prep, macros tracked."/>
+  <title>Benjamin's Healthy Recipes</title>
+  <link rel="manifest" href="manifest.json"/>
+  <!-- Apple touch icon inline as data URI so it works standalone -->
+  <link rel="apple-touch-icon" href="bhr-logo.svg"/>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+    body { background: #111214; color: #f0f0f0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; overscroll-behavior: none; }
+    input, textarea, button { font-family: inherit; }
+    #root { min-height: 100vh; min-height: -webkit-fill-available; }
+    /* Safe area padding for notch phones */
+    .safe-top { padding-top: max(14px, env(safe-area-inset-top)); }
+    .safe-bottom { padding-bottom: max(16px, env(safe-area-inset-bottom)); }
+    /* Scrollbar hidden */
+    ::-webkit-scrollbar { display: none; }
+  </style>
+</head>
+<body>
+<div id="root"></div>
+
+<script>
+// ── Inline SVG logo as data URI ──────────────────────────────────────────────
+const LOGO_SVG = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <defs>
+    <linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#1a1c21"/>
+      <stop offset="100%" stop-color="#111214"/>
+    </linearGradient>
+    <linearGradient id="fire" x1="0%" y1="100%" x2="30%" y2="0%">
+      <stop offset="0%" stop-color="#e8722a"/>
+      <stop offset="60%" stop-color="#f5a623"/>
+      <stop offset="100%" stop-color="#fff4e0" stop-opacity=".9"/>
+    </linearGradient>
+    <linearGradient id="plate" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#3a3d46"/>
+      <stop offset="100%" stop-color="#22252b"/>
+    </linearGradient>
+  </defs>
+  <rect width="512" height="512" rx="100" fill="url(#bg)"/>
+  <rect x="60" y="242" width="392" height="28" rx="14" fill="url(#plate)" stroke="#444" stroke-width="1.5"/>
+  <rect x="62" y="196" width="38" height="120" rx="10" fill="url(#plate)" stroke="#555" stroke-width="1.5"/>
+  <rect x="108" y="210" width="26" height="92" rx="8" fill="url(#plate)" stroke="#555" stroke-width="1.5"/>
+  <rect x="412" y="196" width="38" height="120" rx="10" fill="url(#plate)" stroke="#555" stroke-width="1.5"/>
+  <rect x="378" y="210" width="26" height="92" rx="8" fill="url(#plate)" stroke="#555" stroke-width="1.5"/>
+  <path d="M256 80 C240 100 210 130 215 165 C218 188 230 195 230 195 C225 175 238 158 248 148 C245 168 252 182 256 195 C260 182 267 168 264 148 C274 158 287 175 282 195 C282 195 294 188 297 165 C302 130 272 100 256 80Z" fill="url(#fire)" opacity=".95"/>
+  <path d="M256 110 C248 128 238 148 242 168 C244 178 250 184 253 190 C254 183 255 174 258 166 C261 174 262 183 263 190 C266 184 272 178 274 168 C278 148 264 128 256 110Z" fill="#fff8ee" opacity=".5"/>
+  <text x="154" y="268" font-family="Arial Black,sans-serif" font-weight="900" font-size="58" fill="#e8722a" text-anchor="middle" dominant-baseline="middle">B</text>
+  <text x="256" y="268" font-family="Arial Black,sans-serif" font-weight="900" font-size="58" fill="#f0f0f0" text-anchor="middle" dominant-baseline="middle">H</text>
+  <text x="358" y="268" font-family="Arial Black,sans-serif" font-weight="900" font-size="58" fill="#e8722a" text-anchor="middle" dominant-baseline="middle">R</text>
+  <text x="256" y="370" font-family="Arial,sans-serif" font-weight="600" font-size="20" fill="#8a8f9a" text-anchor="middle" letter-spacing="4">FUEL YOUR BEST</text>
+  <rect x="196" y="392" width="120" height="3" rx="2" fill="#e8722a" opacity=".6"/>
+</svg>`;
+
+// ── Storage (localStorage wrapper) ──────────────────────────────────────────
+const store = {
+  get: (k) => { try { return JSON.parse(localStorage.getItem(k)); } catch { return null; } },
+  set: (k, v) => { try { localStorage.setItem(k, JSON.stringify(v)); } catch {} }
+};
+
+// ── Data ────────────────────────────────────────────────────────────────────
+const SAMPLE = {
+  id:"1", title:"High-Protein Freezer Breakfast Burritos",
+  description:"Meal-prepped freezer burritos with a savory breakfast sausage flavor — same macros, way more breakfast energy.",
+  servings:6, macros:{calories:475,protein:47,carbs:44,fat:13},
+  tags:["Meal Prep","High Protein","Breakfast"], rating:5, photo:null,
+  ingredients:[
+    {qty:1,unit:"bag",name:"Frozen Fajita Vegetables (~450g)"},
+    {qty:227,unit:"g",name:"99/1 Lean Ground Turkey"},
+    {qty:227,unit:"g",name:"93/7 Turkey Breakfast Sausage (Jennie-O)"},
+    {qty:1,unit:"packet",name:"Taco Seasoning"},
+    {qty:1.5,unit:"tsp",name:"Dried Sage"},
+    {qty:1,unit:"tsp",name:"Fennel Seed"},
+    {qty:0.5,unit:"tsp",name:"Red Pepper Flakes"},
+    {qty:0.5,unit:"tsp",name:"Black Pepper"},
+    {qty:450,unit:"g",name:"2% Cottage Cheese (Good Culture)"},
+    {qty:8,unit:"g",name:"Nutritional Yeast"},
+    {qty:400,unit:"g",name:"Egg Whites"},
+    {qty:6,unit:"",name:"Large Eggs"},
+    {qty:0.5,unit:"tsp",name:"Smoked Paprika"},
+    {qty:1,unit:"pinch",name:"Sea Salt"},
+    {qty:6,unit:"",name:"Burrito-Size Tortillas"},
+  ],
+  steps:[
+    {title:"Cook fajita veggies",body:"Add your frozen fajita vegetables to a pan on high heat (7/10 or above). Cook with cover on top until softened, then sauté until they start to brown."},
+    {title:"Season and brown the meat",body:"Add ground turkey and turkey sausage to the same pan. Sprinkle on sage, fennel seed, red pepper flakes, and black pepper directly onto the meat. Brown one side, flip, break into small pieces. Combine with fajita veggies."},
+    {title:"Add seasoning and cheese",body:"Add your taco seasoning packet and mix. Now add cottage cheese and nutritional yeast. Mix everything together well."},
+    {title:"Reduce the meat mixture",body:"Periodically mix and let sit to reduce the extra liquid (~10 min). Transfer to a bowl and let cool — it will thicken further as it sits."},
+    {title:"Scramble the eggs",body:"In that same pan, add egg whites and whole eggs. Sprinkle in smoked paprika. Lightly scramble — do not overcook. Transfer to a bowl, add sea salt, mix, and let cool."},
+    {title:"Build the burritos",body:"Once meat and eggs have fully cooled, build the burritos. Add a proportional amount of each filling to each tortilla and roll tightly."},
+    {title:"Freeze",body:"Wrap each burrito in aluminum foil and place in the freezer."},
+    {title:"Reheat when ready",body:"Remove from foil, wrap in a paper towel, microwave 2:30 (flip halfway). Air fry at 360°F for 10–12 min until golden. Enjoy!"},
+  ],
+  notes:"The sage + fennel combo is what makes it taste like real breakfast sausage. Don't skip the cooling step before building.",
+};
+
+// ── Utilities ────────────────────────────────────────────────────────────────
+const C = {bg:"#111214",surface:"#1c1e22",card:"#22252b",border:"#2e3138",orange:"#e8722a",text:"#f0f0f0",muted:"#8a8f9a",tag:"#2a2d35"};
+
+function fmtQty(n) {
+  if(!n||n===0) return "0";
+  const fracs=[[1/8,"⅛"],[1/4,"¼"],[1/3,"⅓"],[3/8,"⅜"],[1/2,"½"],[2/3,"⅔"],[3/4,"¾"]];
+  const whole=Math.floor(n), rem=n-whole;
+  for(const [v,s] of fracs) if(Math.abs(rem-v)<0.04) return whole>0?`${whole}${s}`:s;
+  const r=Math.round(n*10)/10;
+  return r%1===0?String(r):String(r);
+}
+
+function el(tag, attrs={}, ...children) {
+  const e = document.createElement(tag);
+  for(const [k,v] of Object.entries(attrs)) {
+    if(k==="style"&&typeof v==="object") Object.assign(e.style,v);
+    else if(k.startsWith("on")) e.addEventListener(k.slice(2).toLowerCase(),v);
+    else if(k==="className") e.className=v;
+    else e.setAttribute(k,v);
+  }
+  for(const c of children) {
+    if(c==null||c===false) continue;
+    e.appendChild(typeof c==="string"?document.createTextNode(c):c);
+  }
+  return e;
+}
+
+// ── App State ────────────────────────────────────────────────────────────────
+let recipes = store.get("bhr-recipes") || [SAMPLE];
+let view = "list"; // list | detail | form
+let selected = null;
+let editing = null;
+let search = "";
+
+function save() { store.set("bhr-recipes", recipes); }
+function render() { const r=document.getElementById("root"); r.innerHTML=""; r.appendChild(buildView()); }
+
+// ── Components ───────────────────────────────────────────────────────────────
+function macroBadge(label,value,unit,accent) {
+  return el("div",{style:{background:C.card,border:`1px solid ${accent?C.orange:C.border}`,borderRadius:12,padding:"10px 6px",textAlign:"center",flex:1}},
+    el("div",{style:{fontSize:20,fontWeight:700,color:accent?C.orange:C.text}},String(value),el("span",{style:{fontSize:12}},unit||"")),
+    el("div",{style:{fontSize:10,color:C.muted,marginTop:2,textTransform:"uppercase",letterSpacing:"0.06em"}},label)
+  );
+}
+
+function stars(value, onChange) {
+  return el("div",{style:{display:"flex",gap:3}},
+    ...[1,2,3,4,5].map(s=>{
+      const sp=el("span",{style:{fontSize:20,color:s<=value?"#f5a623":C.border,cursor:onChange?"pointer":"default"}},s<=value?"★":"☆");
+      if(onChange) sp.addEventListener("click",()=>onChange(s));
+      return sp;
+    })
+  );
+}
+
+function tag(label, onRemove) {
+  const t=el("span",{style:{background:C.tag,color:C.muted,borderRadius:20,padding:"3px 10px",fontSize:12,display:"inline-flex",alignItems:"center",gap:4}},label);
+  if(onRemove){const x=el("span",{style:{cursor:"pointer",color:C.orange,fontWeight:700}},"×");x.addEventListener("click",onRemove);t.appendChild(x);}
+  return t;
+}
+
+// ── SPLASH SCREEN (shows briefly on load) ───────────────────────────────────
+function buildSplash() {
+  return el("div",{style:{position:"fixed",inset:0,background:C.bg,display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",gap:16,zIndex:999}},
+    el("div",{style:{width:120,height:120},innerHTML:LOGO_SVG}),
+    el("div",{style:{fontSize:22,fontWeight:800,color:C.text,letterSpacing:"-0.02em"}},"Benjamin's"),
+    el("div",{style:{fontSize:22,fontWeight:800,color:C.orange,letterSpacing:"-0.02em",marginTop:-10}},"Healthy Recipes"),
+    el("div",{style:{fontSize:12,color:C.muted,letterSpacing:"0.2em",textTransform:"uppercase",marginTop:4}},"Fuel Your Best")
+  );
+}
+
+// ── LIST VIEW ───────────────────────────────────────────────────────────────
+function buildList() {
+  const filtered = recipes.filter(r=>
+    r.title.toLowerCase().includes(search.toLowerCase())||
+    (r.tags||[]).some(t=>t.toLowerCase().includes(search.toLowerCase()))
+  );
+
+  const header = el("div",{style:{background:C.surface,borderBottom:`1px solid ${C.border}`,padding:"16px 16px 12px",position:"sticky",top:0,zIndex:10}},
+    el("div",{style:{display:"flex",justifyContent:"space-between",alignItems:"center",maxWidth:480,margin:"0 auto 12px"}},
+      el("div",{},
+        el("div",{style:{display:"flex",alignItems:"center",gap:8}},
+          el("div",{style:{width:32,height:32},innerHTML:LOGO_SVG}),
+          el("div",{style:{fontSize:20,fontWeight:800,letterSpacing:"-0.02em"}},el("span",{style:{color:C.orange}},"BHR")," Recipes")
+        ),
+        el("div",{style:{fontSize:11,color:C.muted,marginTop:2}},`${recipes.length} saved · macros tracked`)
+      ),
+      el("button",{
+        style:{background:C.orange,border:"none",color:"#fff",borderRadius:22,padding:"10px 18px",cursor:"pointer",fontWeight:700,fontSize:14},
+        onClick:()=>{editing=null;view="form";render();}
+      },"+ New")
+    ),
+    el("div",{style:{maxWidth:480,margin:"0 auto"}},
+      el("input",{
+        type:"text",placeholder:"Search recipes or tags…",value:search,
+        style:{background:C.card,border:`1px solid ${C.border}`,color:C.text,borderRadius:10,padding:"9px 14px",fontSize:14,width:"100%",outline:"none"},
+        onInput:(e)=>{search=e.target.value;render();}
+      })
+    )
+  );
+
+  const cards = el("div",{style:{padding:16,maxWidth:480,margin:"0 auto",display:"flex",flexDirection:"column",gap:12}});
+
+  if(filtered.length===0) {
+    cards.appendChild(el("div",{style:{textAlign:"center",color:C.muted,padding:"48px 0",fontSize:14}},
+      search?"No recipes match that search.":"No recipes yet. Tap + New to add one."
+    ));
+  }
+
+  for(const r of filtered) {
+    const card = el("div",{style:{background:C.card,border:`1px solid ${C.border}`,borderRadius:16,overflow:"hidden",cursor:"pointer",transition:"border-color 0.15s"}});
+    card.addEventListener("mouseenter",()=>card.style.borderColor=C.orange);
+    card.addEventListener("mouseleave",()=>card.style.borderColor=C.border);
+
+    const body = el("div",{style:{padding:16},onClick:()=>{selected=r;view="detail";render();}});
+    if(r.photo) {
+      const img=el("img",{src:r.photo,alt:r.title,style:{width:"100%",height:"150px",objectFit:"cover",display:"block"}});
+      img.addEventListener("click",()=>{selected=r;view="detail";render();});
+      card.appendChild(img);
+    }
+
+    const topRow=el("div",{style:{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:8}});
+    topRow.appendChild(el("div",{style:{fontWeight:700,fontSize:15,color:C.text,lineHeight:1.3,flex:1,paddingRight:8}},r.title));
+    topRow.appendChild(stars(r.rating));
+    body.appendChild(topRow);
+
+    const tagRow=el("div",{style:{display:"flex",gap:6,marginBottom:10,flexWrap:"wrap"}});
+    (r.tags||[]).forEach(t=>tagRow.appendChild(tag(t)));
+    body.appendChild(tagRow);
+
+    const macroRow=el("div",{style:{display:"flex",gap:8}});
+    macroRow.appendChild(macroBadge("Cal",r.macros.calories,"",true));
+    macroRow.appendChild(macroBadge("Protein",r.macros.protein,"g"));
+    macroRow.appendChild(macroBadge("Carbs",r.macros.carbs,"g"));
+    macroRow.appendChild(macroBadge("Fat",r.macros.fat,"g"));
+    body.appendChild(macroRow);
+    body.appendChild(el("div",{style:{marginTop:10,fontSize:12,color:C.muted}},`${r.servings} servings · per serving`));
+    card.appendChild(body);
+
+    const dupBar=el("div",{style:{borderTop:`1px solid ${C.border}`,padding:"8px 16px"}});
+    const dupBtn=el("button",{style:{background:"transparent",border:"none",color:C.muted,fontSize:12,cursor:"pointer",display:"flex",alignItems:"center",gap:5,padding:0}},"⧉ Duplicate recipe");
+    dupBtn.addEventListener("click",(e)=>{e.stopPropagation();duplicateRecipe(r);});
+    dupBar.appendChild(dupBtn);
+    card.appendChild(dupBar);
+    cards.appendChild(card);
+  }
+
+  const wrap=el("div",{});
+  wrap.appendChild(header);
+  wrap.appendChild(cards);
+  return wrap;
+}
+
+// ── DETAIL VIEW ──────────────────────────────────────────────────────────────
+function buildDetail() {
+  const r = selected;
+  let scaledServings = r.servings;
+  let activeTab = "ingredients";
+  let checkedSteps = {};
+  let showMenu = false;
+
+  const root = el("div",{style:{background:C.bg,minHeight:"100vh",color:C.text}});
+
+  // Header
+  const hdr = el("div",{style:{background:C.surface,borderBottom:`1px solid ${C.border}`,padding:"14px 16px",display:"flex",alignItems:"center",gap:12,position:"sticky",top:0,zIndex:10}});
+  const backBtn=el("button",{style:{background:C.card,border:`1px solid ${C.border}`,color:C.text,borderRadius:20,padding:"6px 14px",cursor:"pointer",fontSize:13},onClick:()=>{view="list";selected=null;render();}},"← Back");
+  hdr.appendChild(backBtn);
+  hdr.appendChild(el("div",{style:{flex:1}}));
+
+  const menuWrap=el("div",{style:{position:"relative"}});
+  const menuBtn=el("button",{style:{background:C.orange,border:"none",color:"#fff",borderRadius:20,padding:"6px 14px",cursor:"pointer",fontSize:13,fontWeight:600},onClick:()=>{showMenu=!showMenu;menuDrop.style.display=showMenu?"block":"none";}},"⋯");
+  const menuDrop=el("div",{style:{position:"absolute",right:0,top:38,background:C.card,border:`1px solid ${C.border}`,borderRadius:12,overflow:"hidden",zIndex:100,minWidth:160,display:"none"}});
+
+  const editItem=el("button",{style:{display:"block",width:"100%",background:"transparent",border:"none",color:C.text,padding:"12px 16px",textAlign:"left",cursor:"pointer",fontSize:14},onClick:()=>{editing=r;view="form";render();}},"✏️ Edit recipe");
+  const dupItem=el("button",{style:{display:"block",width:"100%",background:"transparent",border:"none",color:C.text,padding:"12px 16px",textAlign:"left",cursor:"pointer",fontSize:14},onClick:()=>{showMenu=false;menuDrop.style.display="none";duplicateRecipe(r);}},"⧉ Duplicate recipe");
+  menuDrop.appendChild(editItem);
+  menuDrop.appendChild(el("div",{style:{height:1,background:C.border}}));
+  menuDrop.appendChild(dupItem);
+  menuWrap.appendChild(menuBtn);
+  menuWrap.appendChild(menuDrop);
+  hdr.appendChild(menuWrap);
+  root.appendChild(hdr);
+
+  // Photo
+  if(r.photo) root.appendChild(el("img",{src:r.photo,alt:r.title,style:{width:"100%",height:"220px",objectFit:"cover",display:"block"}}));
+
+  const body=el("div",{style:{padding:16,maxWidth:480,margin:"0 auto"}});
+  body.appendChild(el("h1",{style:{fontSize:22,fontWeight:800,margin:"12px 0 4px",lineHeight:1.25}},r.title));
+  body.appendChild(stars(r.rating));
+  body.appendChild(el("p",{style:{color:C.muted,fontSize:13,margin:"8px 0 16px"}},r.description||""));
+
+  // Serving scaler
+  const scalerWrap=el("div",{style:{background:C.card,border:`1px solid ${C.border}`,borderRadius:16,padding:16,marginBottom:16,display:"flex",alignItems:"center",justifyContent:"space-between",gap:12}});
+  scalerWrap.appendChild(el("div",{},
+    el("div",{style:{fontSize:13,fontWeight:700,color:C.muted,textTransform:"uppercase",letterSpacing:"0.06em",marginBottom:2}},"Servings"),
+    el("div",{style:{fontSize:12,color:C.muted}},`Base: ${r.servings}`)
+  ));
+
+  const ctrl=el("div",{style:{display:"flex",alignItems:"center",background:C.bg,border:`1px solid ${C.border}`,borderRadius:12,overflow:"hidden"}});
+  const minusBtn=el("button",{style:{background:"transparent",border:"none",color:C.orange,fontSize:22,fontWeight:700,padding:"4px 16px",cursor:"pointer",lineHeight:1}},"−");
+  const ctrlNum=el("div",{style:{textAlign:"center",minWidth:60,padding:"6px 4px"}},
+    el("div",{style:{fontSize:18,fontWeight:800,color:C.text,id:"snum"}},String(scaledServings)),
+    el("div",{style:{fontSize:10,color:C.muted,textTransform:"uppercase",letterSpacing:"0.05em"}},"servings")
+  );
+  const plusBtn=el("button",{style:{background:"transparent",border:"none",color:C.orange,fontSize:22,fontWeight:700,padding:"4px 16px",cursor:"pointer",lineHeight:1}},"+");
+
+  function updateScaler() {
+    ctrlNum.firstChild.textContent=String(scaledServings);
+    minusBtn.style.color=scaledServings<=1?C.border:C.orange;
+    minusBtn.style.cursor=scaledServings<=1?"default":"pointer";
+    updateIngredients();
+    updateMacros();
+  }
+  minusBtn.addEventListener("click",()=>{if(scaledServings>1){scaledServings--;updateScaler();}});
+  plusBtn.addEventListener("click",()=>{scaledServings++;updateScaler();});
+  ctrl.appendChild(minusBtn);ctrl.appendChild(ctrlNum);ctrl.appendChild(plusBtn);
+  scalerWrap.appendChild(ctrl);
+  body.appendChild(scalerWrap);
+
+  // Macros block
+  const macroWrap=el("div",{style:{background:C.card,border:`1px solid ${C.border}`,borderRadius:16,padding:16,marginBottom:16}});
+  const macroTitle=el("div",{style:{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:10}});
+  const macroLabel=el("div",{style:{fontSize:13,fontWeight:700,color:C.muted,textTransform:"uppercase",letterSpacing:"0.06em"}},`Macros · ${r.servings} servings`);
+  const macroEach=el("div",{style:{fontSize:11,color:C.orange,fontWeight:600,display:"none"}},`${r.macros.calories} cal each`);
+  macroTitle.appendChild(macroLabel);macroTitle.appendChild(macroEach);
+  macroWrap.appendChild(macroTitle);
+  const macroRow=el("div",{style:{display:"flex",gap:8}});
+  const mCal=macroBadge("Calories",r.macros.calories*r.servings,"",true);
+  const mPro=macroBadge("Protein",r.macros.protein*r.servings,"g");
+  const mCarb=macroBadge("Carbs",r.macros.carbs*r.servings,"g");
+  const mFat=macroBadge("Fat",r.macros.fat*r.servings,"g");
+  macroRow.appendChild(mCal);macroRow.appendChild(mPro);macroRow.appendChild(mCarb);macroRow.appendChild(mFat);
+  macroWrap.appendChild(macroRow);
+  body.appendChild(macroWrap);
+
+  function updateMacros() {
+    mCal.firstChild.textContent=String(Math.round(r.macros.calories*scaledServings));
+    mPro.firstChild.textContent=String(Math.round(r.macros.protein*scaledServings));
+    mCarb.firstChild.textContent=String(Math.round(r.macros.carbs*scaledServings));
+    mFat.firstChild.textContent=String(Math.round(r.macros.fat*scaledServings));
+    macroLabel.textContent=scaledServings===1?`Macros · 1 serving`:`Macros · ${scaledServings} servings (total)`;
+    macroEach.style.display=scaledServings!==r.servings?"block":"none";
+  }
+
+  // Tags
+  const tagRow=el("div",{style:{display:"flex",gap:6,flexWrap:"wrap",marginBottom:16}});
+  (r.tags||[]).forEach(t=>tagRow.appendChild(tag(t)));
+  body.appendChild(tagRow);
+
+  // Tabs
+  const tabBar=el("div",{style:{display:"flex",background:C.card,borderRadius:12,padding:4,marginBottom:16,border:`1px solid ${C.border}`}});
+  const tabs=["ingredients","steps","notes"];
+  const tabBtns={};
+  tabs.forEach(t=>{
+    const b=el("button",{style:{flex:1,background:t===activeTab?C.orange:"transparent",border:"none",color:t===activeTab?"#fff":C.muted,borderRadius:9,padding:"8px 4px",cursor:"pointer",fontWeight:t===activeTab?700:400,fontSize:13,textTransform:"capitalize",transition:"all 0.15s"}},t);
+    b.addEventListener("click",()=>{activeTab=t;tabs.forEach(x=>{tabBtns[x].style.background=x===t?C.orange:"transparent";tabBtns[x].style.color=x===t?"#fff":C.muted;tabBtns[x].style.fontWeight=x===t?700:400;});showTab();});
+    tabBtns[t]=b;tabBar.appendChild(b);
+  });
+  body.appendChild(tabBar);
+
+  const tabContent=el("div",{});
+  body.appendChild(tabContent);
+
+  // Ingredients panel
+  const ingPanel=el("div",{style:{display:"flex",flexDirection:"column",gap:2}});
+  const scaleBanner=el("div",{style:{background:C.orange+"22",border:`1px solid ${C.orange}44`,borderRadius:8,padding:"8px 12px",marginBottom:8,fontSize:12,color:C.orange,display:"none"}},"Scaled — ingredients adjusted automatically");
+  ingPanel.appendChild(scaleBanner);
+  const ingRows=[];
+  r.ingredients.forEach((ing,i)=>{
+    const row=el("div",{style:{display:"flex",justifyContent:"space-between",padding:"10px 12px",background:i%2===0?C.card:C.surface,borderRadius:8}},
+      el("span",{style:{color:C.text,fontSize:14}},ing.name),
+      el("span",{style:{color:C.orange,fontWeight:700,fontSize:14,whiteSpace:"nowrap",marginLeft:8}},ing.unit==="pinch"?`${Math.ceil(1)} pinch`:`${fmtQty(ing.qty)}${ing.unit?" "+ing.unit:""}`)
+    );
+    ingPanel.appendChild(row);
+    ingRows.push({row,ing});
+  });
+
+  function updateIngredients() {
+    const ratio=scaledServings/r.servings;
+    scaleBanner.style.display=scaledServings!==r.servings?"block":"none";
+    scaleBanner.textContent=`Scaled to ${scaledServings} servings — ingredients adjusted automatically`;
+    ingRows.forEach(({row,ing})=>{
+      const qtySpan=row.lastChild;
+      if(ing.unit==="pinch") qtySpan.textContent=`${Math.ceil(ratio)} pinch${Math.ceil(ratio)>1?"es":""}`;
+      else qtySpan.textContent=`${fmtQty(ing.qty*ratio)}${ing.unit?" "+ing.unit:""}`;
+    });
+  }
+
+  // Steps panel
+  const stepsPanel=el("div",{style:{display:"flex",flexDirection:"column",gap:10}});
+  r.steps.forEach((step,i)=>{
+    let done=false;
+    const sCard=el("div",{style:{background:C.card,border:`1px solid ${C.border}`,borderRadius:12,padding:"12px 14px",cursor:"pointer",transition:"all 0.15s"}});
+    const topRow=el("div",{style:{display:"flex",alignItems:"center",gap:10,marginBottom:4}});
+    const num=el("div",{style:{width:24,height:24,borderRadius:"50%",background:C.border,display:"flex",alignItems:"center",justifyContent:"center",fontSize:11,fontWeight:700,color:"#fff",flexShrink:0}},String(i+1));
+    topRow.appendChild(num);topRow.appendChild(el("div",{style:{fontWeight:700,fontSize:14}},step.title));
+    sCard.appendChild(topRow);
+    sCard.appendChild(el("div",{style:{color:C.muted,fontSize:13,lineHeight:1.5,paddingLeft:34}},step.body));
+    sCard.addEventListener("click",()=>{done=!done;sCard.style.opacity=done?"0.6":"1";sCard.style.borderColor=done?C.orange+"44":C.border;num.style.background=done?C.orange:C.border;num.textContent=done?"✓":String(i+1);});
+    stepsPanel.appendChild(sCard);
+  });
+
+  // Notes panel
+  const notesPanel=el("div",{style:{background:C.card,border:`1px solid ${C.border}`,borderRadius:12,padding:14,fontSize:14,color:C.muted,lineHeight:1.6}},r.notes||"No notes yet.");
+
+  function showTab() {
+    tabContent.innerHTML="";
+    if(activeTab==="ingredients") tabContent.appendChild(ingPanel);
+    if(activeTab==="steps") tabContent.appendChild(stepsPanel);
+    if(activeTab==="notes") tabContent.appendChild(notesPanel);
+  }
+  showTab();
+
+  root.appendChild(body);
+  return root;
+}
+
+// ── FORM VIEW ────────────────────────────────────────────────────────────────
+function buildForm() {
+  const isEdit=!!editing;
+  const blank={title:"",description:"",servings:1,photo:null,macros:{calories:0,protein:0,carbs:0,fat:0},tags:[],rating:5,ingredients:[{qty:"",unit:"",name:""}],steps:[{title:"",body:""}],notes:""};
+  const form=isEdit?JSON.parse(JSON.stringify(editing)):blank;
+
+  const root=el("div",{style:{background:C.bg,minHeight:"100vh",color:C.text}});
+
+  // Header
+  const hdr=el("div",{style:{background:C.surface,borderBottom:`1px solid ${C.border}`,padding:"14px 16px",display:"flex",alignItems:"center",gap:12,position:"sticky",top:0,zIndex:10}});
+  hdr.appendChild(el("button",{style:{background:C.card,border:`1px solid ${C.border}`,color:C.text,borderRadius:20,padding:"6px 14px",cursor:"pointer",fontSize:13},onClick:()=>{view=isEdit?"detail":"list";render();}},"Cancel"));
+  hdr.appendChild(el("div",{style:{flex:1,fontWeight:700,fontSize:16}},isEdit?"Edit Recipe":"New Recipe"));
+  hdr.appendChild(el("button",{style:{background:C.orange,border:"none",color:"#fff",borderRadius:20,padding:"6px 16px",cursor:"pointer",fontSize:13,fontWeight:700},onClick:()=>handleSave()},"Save"));
+  root.appendChild(hdr);
+
+  const body=el("div",{style:{padding:16,maxWidth:480,margin:"0 auto"}});
+  const inp={background:C.card,border:`1px solid ${C.border}`,color:C.text,borderRadius:8,padding:"8px 10px",fontSize:14,width:"100%",outline:"none"};
+  const lbl={fontSize:12,color:C.muted,textTransform:"uppercase",letterSpacing:"0.06em",marginBottom:4,display:"block"};
+  const sec={marginBottom:20};
+
+  function section(labelText, ...kids) {
+    const s=el("div",{style:sec});
+    s.appendChild(el("label",{style:lbl},labelText));
+    kids.forEach(k=>s.appendChild(k));
+    return s;
+  }
+
+  // Photo
+  const photoWrap=el("div",{style:sec});
+  photoWrap.appendChild(el("label",{style:lbl},"Photo"));
+  let photoEl=buildPhotoEl(form.photo);
+  photoWrap.appendChild(photoEl);
+  body.appendChild(photoWrap);
+
+  function buildPhotoEl(src) {
+    if(src) {
+      const w=el("div",{style:{position:"relative",borderRadius:12,overflow:"hidden",marginBottom:4}});
+      w.appendChild(el("img",{src,style:{width:"100%",height:180,objectFit:"cover",display:"block"}}));
+      const rmv=el("button",{style:{position:"absolute",top:8,right:8,background:"rgba(0,0,0,0.7)",border:"none",color:"#fff",borderRadius:20,padding:"4px 10px",cursor:"pointer",fontSize:12},onClick:()=>{form.photo=null;photoEl.replaceWith(buildPhotoEl(null));photoEl=photoEl;}},"Remove");
+      w.appendChild(rmv);
+      return w;
+    } else {
+      const fi=el("input",{type:"file",accept:"image/*",style:{display:"none"}});
+      fi.addEventListener("change",(e)=>{
+        const file=e.target.files[0];if(!file)return;
+        const fr=new FileReader();
+        fr.onload=(ev)=>{form.photo=ev.target.result;const np=buildPhotoEl(form.photo);photoEl.replaceWith(np);photoEl=np;};
+        fr.readAsDataURL(file);
+      });
+      const zone=el("div",{style:{border:`2px dashed ${C.border}`,borderRadius:12,height:120,display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",cursor:"pointer",gap:6}},
+        el("div",{style:{fontSize:28}},"📷"),
+        el("div",{style:{color:C.muted,fontSize:13}},"Tap to add a photo")
+      );
+      zone.addEventListener("click",()=>fi.click());
+      const w=el("div",{});w.appendChild(fi);w.appendChild(zone);return w;
+    }
+  }
+
+  // Title
+  const titleInp=el("input",{type:"text",placeholder:"e.g. Freezer Breakfast Burritos",style:inp,value:form.title});
+  titleInp.addEventListener("input",e=>form.title=e.target.value);
+  body.appendChild(section("Recipe Name",titleInp));
+
+  // Description
+  const descInp=el("textarea",{placeholder:"Short description…",style:{...inp,height:"70px",resize:"vertical"}});
+  descInp.value=form.description||"";
+  descInp.addEventListener("input",e=>form.description=e.target.value);
+  body.appendChild(section("Description",descInp));
+
+  // Servings + Rating row
+  const srRow=el("div",{style:{display:"flex",gap:10,marginBottom:20}});
+  const srvInp=el("input",{type:"number",style:{...inp,width:"100%"},value:form.servings});
+  srvInp.addEventListener("input",e=>form.servings=Number(e.target.value));
+  const srvWrap=el("div",{style:{flex:1}});
+  srvWrap.appendChild(el("label",{style:lbl},"Base Servings"));
+  srvWrap.appendChild(srvInp);
+  srRow.appendChild(srvWrap);
+  const ratWrap=el("div",{style:{flex:1}});
+  ratWrap.appendChild(el("label",{style:lbl},"Rating"));
+  let ratingVal=form.rating;
+  const starEl=stars(ratingVal,(v)=>{ratingVal=v;form.rating=v;ratWrap.replaceChild(stars(ratingVal,(vv)=>{ratingVal=vv;form.rating=vv;}),ratWrap.lastChild);});
+  ratWrap.appendChild(starEl);
+  srRow.appendChild(ratWrap);
+  body.appendChild(srRow);
+
+  // Macros
+  const macroGrid=el("div",{style:{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8}});
+  ["calories","protein","carbs","fat"].forEach(k=>{
+    const w=el("div",{});
+    w.appendChild(el("label",{style:{...lbl,marginTop:4}},k));
+    const mi=el("input",{type:"number",style:{...inp,width:"100%"},value:form.macros[k]});
+    mi.addEventListener("input",e=>form.macros[k]=Number(e.target.value));
+    w.appendChild(mi);macroGrid.appendChild(w);
+  });
+  body.appendChild(section("Macros (per serving)",macroGrid));
+
+  // Tags
+  const tagSec=el("div",{style:sec});
+  tagSec.appendChild(el("label",{style:lbl},"Tags"));
+  const tagRow2=el("div",{style:{display:"flex",gap:8,marginBottom:8}});
+  const tagInp=el("input",{type:"text",placeholder:"e.g. Meal Prep",style:{...inp,flex:1}});
+  const tagCloud=el("div",{style:{display:"flex",gap:6,flexWrap:"wrap"}});
+  function refreshTags(){tagCloud.innerHTML="";(form.tags||[]).forEach((t,i)=>tagCloud.appendChild(tag(t,()=>{form.tags.splice(i,1);refreshTags();})));}
+  refreshTags();
+  const tagAdd=el("button",{style:{background:C.orange,border:"none",color:"#fff",borderRadius:8,padding:"8px 14px",cursor:"pointer",fontWeight:700},onClick:()=>{const v=tagInp.value.trim();if(v){form.tags=form.tags||[];form.tags.push(v);tagInp.value="";refreshTags();}}},"+");
+  tagInp.addEventListener("keydown",e=>{if(e.key==="Enter"){tagAdd.click();}});
+  tagRow2.appendChild(tagInp);tagRow2.appendChild(tagAdd);
+  tagSec.appendChild(tagRow2);tagSec.appendChild(tagCloud);
+  body.appendChild(tagSec);
+
+  // Ingredients
+  const ingSec=el("div",{style:sec});
+  ingSec.appendChild(el("label",{style:lbl},"Ingredients"));
+  ingSec.appendChild(el("div",{style:{fontSize:11,color:C.muted,marginBottom:8}},"Use numeric quantities so the serving scaler can adjust automatically."));
+  const ingList=el("div",{});
+  form.ingredients=form.ingredients||[{qty:"",unit:"",name:""}];
+  function refreshIngredients(){
+    ingList.innerHTML="";
+    form.ingredients.forEach((ing,i)=>{
+      const row=el("div",{style:{display:"flex",gap:6,marginBottom:6}});
+      const qi=el("input",{type:"number",step:"any",placeholder:"Qty",style:{...inp,width:64,flexShrink:0},value:ing.qty});
+      qi.addEventListener("input",e=>form.ingredients[i].qty=e.target.value);
+      const ui=el("input",{type:"text",placeholder:"Unit",style:{...inp,width:70,flexShrink:0},value:ing.unit});
+      ui.addEventListener("input",e=>form.ingredients[i].unit=e.target.value);
+      const ni=el("input",{type:"text",placeholder:"Ingredient name",style:{...inp,flex:1},value:ing.name});
+      ni.addEventListener("input",e=>form.ingredients[i].name=e.target.value);
+      const rm=el("button",{style:{background:"transparent",border:`1px solid ${C.border}`,color:C.muted,borderRadius:8,padding:"0 10px",cursor:"pointer"},onClick:()=>{form.ingredients.splice(i,1);refreshIngredients();}},"×");
+      row.appendChild(qi);row.appendChild(ui);row.appendChild(ni);row.appendChild(rm);
+      ingList.appendChild(row);
+    });
+  }
+  refreshIngredients();
+  const addIngBtn=el("button",{style:{background:C.tag,border:`1px dashed ${C.border}`,color:C.muted,borderRadius:8,padding:"8px",width:"100%",cursor:"pointer",fontSize:13,marginTop:4},onClick:()=>{form.ingredients.push({qty:"",unit:"",name:""});refreshIngredients();}},"+ Add Ingredient");
+  ingSec.appendChild(ingList);ingSec.appendChild(addIngBtn);
+  body.appendChild(ingSec);
+
+  // Steps
+  const stepSec=el("div",{style:sec});
+  stepSec.appendChild(el("label",{style:lbl},"Steps"));
+  const stepList=el("div",{});
+  form.steps=form.steps||[{title:"",body:""}];
+  function refreshSteps(){
+    stepList.innerHTML="";
+    form.steps.forEach((step,i)=>{
+      const card=el("div",{style:{background:C.card,border:`1px solid ${C.border}`,borderRadius:10,padding:12,marginBottom:8}});
+      const hr=el("div",{style:{display:"flex",gap:6,marginBottom:6}});
+      const num=el("div",{style:{width:24,height:24,borderRadius:"50%",background:C.orange,display:"flex",alignItems:"center",justifyContent:"center",fontSize:11,fontWeight:700,color:"#fff",flexShrink:0,marginTop:6}},String(i+1));
+      const ti=el("input",{type:"text",placeholder:"Step title",style:{...inp,flex:1},value:step.title});
+      ti.addEventListener("input",e=>form.steps[i].title=e.target.value);
+      const rm=el("button",{style:{background:"transparent",border:`1px solid ${C.border}`,color:C.muted,borderRadius:8,padding:"0 10px",cursor:"pointer"},onClick:()=>{form.steps.splice(i,1);refreshSteps();}},"×");
+      hr.appendChild(num);hr.appendChild(ti);hr.appendChild(rm);
+      const ta=el("textarea",{placeholder:"Step instructions…",style:{...inp,height:"70px",resize:"vertical"}});
+      ta.value=step.body||"";
+      ta.addEventListener("input",e=>form.steps[i].body=e.target.value);
+      card.appendChild(hr);card.appendChild(ta);
+      stepList.appendChild(card);
+    });
+  }
+  refreshSteps();
+  const addStepBtn=el("button",{style:{background:C.tag,border:`1px dashed ${C.border}`,color:C.muted,borderRadius:8,padding:"8px",width:"100%",cursor:"pointer",fontSize:13},onClick:()=>{form.steps.push({title:"",body:""});refreshSteps();}},"+ Add Step");
+  stepSec.appendChild(stepList);stepSec.appendChild(addStepBtn);
+  body.appendChild(stepSec);
+
+  // Notes
+  const notesTA=el("textarea",{placeholder:"Tips, substitutions, storage…",style:{...inp,height:"80px",resize:"vertical"}});
+  notesTA.value=form.notes||"";
+  notesTA.addEventListener("input",e=>form.notes=e.target.value);
+  body.appendChild(section("Notes",notesTA));
+
+  root.appendChild(body);
+
+  function handleSave() {
+    const cleaned={...form,id:isEdit?editing.id:Date.now().toString(),ingredients:form.ingredients.map(ing=>({...ing,qty:parseFloat(ing.qty)||0}))};
+    if(isEdit) {recipes=recipes.map(r=>r.id===editing.id?cleaned:r);selected=cleaned;}
+    else recipes=[...recipes,cleaned];
+    save();editing=null;view=isEdit?"detail":"list";render();
+  }
+
+  return root;
+}
+
+// ── Duplicate ─────────────────────────────────────────────────────────────────
+function duplicateRecipe(r) {
+  const copy={...JSON.parse(JSON.stringify(r)),id:Date.now().toString(),title:r.title+" (Copy)"};
+  recipes=[...recipes,copy];save();editing=copy;view="form";render();
+}
+
+// ── Router ───────────────────────────────────────────────────────────────────
+function buildView() {
+  if(view==="list") return buildList();
+  if(view==="detail") return buildDetail();
+  if(view==="form") return buildForm();
+}
+
+// ── Boot ─────────────────────────────────────────────────────────────────────
+window.addEventListener("DOMContentLoaded",()=>{
+  // Show splash for 1.6 seconds
+  const splash=buildSplash();
+  document.getElementById("root").appendChild(splash);
+  setTimeout(()=>{render();},1600);
+});
+
+// Register service worker for offline PWA
+if("serviceWorker" in navigator) {
+  navigator.serviceWorker.register("sw.js").catch(()=>{});
+}
+</script>
+</body>
+</html>

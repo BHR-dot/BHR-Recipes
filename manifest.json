@@ -1,0 +1,18 @@
+{
+  "name": "Benjamin's Healthy Recipes",
+  "short_name": "BHR",
+  "description": "High-protein meal prep recipes, macros tracked, built for performance.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#111214",
+  "theme_color": "#e8722a",
+  "orientation": "portrait",
+  "icons": [
+    {
+      "src": "bhr-logo.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}
