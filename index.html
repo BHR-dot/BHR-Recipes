@@ -137,6 +137,43 @@ let editing = null;
 let search = "";
 
 function save() { store.set("bhr-recipes", recipes); }
+
+function exportRecipes() {
+  const exportData = recipes.map(r => ({...r, photo: null}));
+  const json = JSON.stringify({bhr:true, version:1, recipes: exportData}, null, 2);
+  const blob = new Blob([json], {type:"application/json"});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url; a.download = "bhr-recipes.json"; a.click();
+  URL.revokeObjectURL(url);
+}
+
+function importRecipes(file) {
+  const fr = new FileReader();
+  fr.onload = (e) => {
+    try {
+      const data = JSON.parse(e.target.result);
+      if(!data.bhr || !data.recipes) { alert("That doesn't look like a BHR recipe file."); return; }
+      const existingIds = new Set(recipes.map(r=>r.id));
+      const newOnes = data.recipes.filter(r=>!existingIds.has(r.id));
+      recipes = [...recipes, ...newOnes];
+      save(); render();
+      alert(newOnes.length===0 ? "No new recipes \u2014 you already have them all." : ("\u2705 Added "+newOnes.length+" new recipe"+(newOnes.length>1?"s":"")+"!"));
+    } catch { alert("Couldn't read that file. Make sure it's a BHR recipe (.json) file."); }
+  };
+  fr.readAsText(file);
+}
+
+// One-time auto-add of the grilled elote chalupas recipe (won't re-add if deleted later)
+(function seedOnce(){
+  try {
+    if(!store.get("bhr-seed-chalupa-grilled")){
+      const SEED = JSON.parse(`{"id": "spicy-elote-chicken-chalupas-grilled", "title": "Spicy Elote Chicken Chalupas (Grilled)", "description": "Street-corn-inspired chalupas with grilled Cajun chicken marinated in apple cider vinegar and lime. High protein, big-batch elote sauce, crispy air-fried pita.", "servings": 2, "macros": {"calories": 270, "protein": 35, "carbs": 17, "fat": 8}, "tags": ["High Protein", "Meal Prep", "Mexican", "Grilled"], "rating": 5, "photo": null, "ingredients": [{"qty": 0, "unit": "", "name": "──  ELOTE SAUCE  ──"}, {"qty": 340, "unit": "g", "name": "Plain Non-Fat Greek Yogurt"}, {"qty": 226, "unit": "g", "name": "2% Cottage Cheese"}, {"qty": 80, "unit": "g", "name": "Sriracha"}, {"qty": 60, "unit": "g", "name": "Honey"}, {"qty": 10, "unit": "g", "name": "Low Sodium Soy Sauce"}, {"qty": 1, "unit": "", "name": "Lime (juice + zest)"}, {"qty": 1, "unit": "tsp", "name": "Sea Salt"}, {"qty": 0.5, "unit": "tsp", "name": "Black Pepper"}, {"qty": 0.5, "unit": "tsp", "name": "Garlic Powder"}, {"qty": 0.5, "unit": "tsp", "name": "Smoked Paprika"}, {"qty": 0, "unit": "", "name": "──  ELOTE PICO  ──"}, {"qty": 907, "unit": "g", "name": "Frozen Corn"}, {"qty": 200, "unit": "g", "name": "Red Onion"}, {"qty": 80, "unit": "g", "name": "Jalapeno"}, {"qty": 20, "unit": "g", "name": "Cilantro"}, {"qty": 30, "unit": "g", "name": "Minced Garlic"}, {"qty": 40, "unit": "g", "name": "Cotija Cheese (Parmesan if you don't have it)"}, {"qty": 1, "unit": "tsp", "name": "Sea Salt"}, {"qty": 1, "unit": "tsp", "name": "Smoked Paprika"}, {"qty": 0.5, "unit": "tsp", "name": "Garlic Powder"}, {"qty": 0, "unit": "", "name": "──  GRILLED CHICKEN + MARINADE  ──"}, {"qty": 907, "unit": "g", "name": "Chicken Breast"}, {"qty": 2, "unit": "Tbsp", "name": "Apple Cider Vinegar (marinade)"}, {"qty": 1, "unit": "Tbsp", "name": "Lime Juice (marinade)"}, {"qty": 2, "unit": "Tbsp", "name": "Cajun Seasoning (marinade)"}, {"qty": 1, "unit": "tsp", "name": "Smoked Paprika (marinade)"}, {"qty": 2, "unit": "", "name": "Garlic cloves, minced — or 1 tsp garlic powder (marinade)"}, {"qty": 1, "unit": "Tbsp", "name": "Oil — OPTIONAL, helps grilling (~adds fat)"}, {"qty": 1, "unit": "", "name": "Elote Sauce — 1/6th of the batch (to toss chicken)"}, {"qty": 0, "unit": "", "name": "──  ROMAINE  ──"}, {"qty": 150, "unit": "g", "name": "Romaine, chopped"}, {"qty": 1, "unit": "", "name": "Elote Sauce — a spoonful (just to coat)"}, {"qty": 0, "unit": "", "name": "──  PER CHALUPA  ──"}, {"qty": 1, "unit": "", "name": "Joseph's Pita"}, {"qty": 14, "unit": "g", "name": "Part-Skim Mozzarella (7g + 7g)"}, {"qty": 1, "unit": "", "name": "Elote Chicken — 1/4 of the batch, tossed in sauce"}, {"qty": 1, "unit": "", "name": "Cooking Spray (+1g fat per chalupa, already in macros)"}], "steps": [{"title": "Marinate the chicken", "body": "Pat the chicken dry and pound to even thickness. In a bowl or zip bag, combine 2 Tbsp apple cider vinegar, 1 Tbsp lime juice, 2 Tbsp Cajun seasoning, 1 tsp smoked paprika, and the minced garlic (or 1 tsp garlic powder). Add the chicken and coat well. Marinate 30 min to 2 hours MAX — vinegar-based marinades start breaking the meat down past that. Optional: add 1 Tbsp oil to help it grill and stay juicy."}, {"title": "Grill the chicken", "body": "Grill over medium-high heat, about 5–6 minutes per side, until the internal temp hits 165°F. Pull it and let it rest 10 minutes before chopping so it stays juicy."}, {"title": "Blend the elote sauce", "body": "Blend all elote sauce ingredients until smooth."}, {"title": "Char the corn + build the pico", "body": "Sauté the corn on 7/10 heat until lightly charred. Season with sea salt, then combine with the rest of the elote pico ingredients in a bowl."}, {"title": "Make the elote chicken", "body": "Once the grilled chicken has rested, chop it and toss in 1/6th of the elote sauce."}, {"title": "Dress the romaine", "body": "Mix 150g chopped romaine with a spoonful of the elote sauce — just enough to coat lightly."}, {"title": "Assemble the chalupas", "body": "Lay a pita flat. On one side: 7g mozzarella, 1/4 of the elote chicken, a spoonful of elote sauce, then another 7g mozzarella. Fold tightly."}, {"title": "Crisp them up", "body": "Spray both sides with nonstick cooking spray and air fry at 400°F for 4 minutes. Set ramekins on top to hold them closed."}, {"title": "Finish", "body": "Open them up, add the dressed romaine, and enjoy!"}], "notes": "GRILL SWAP: Replaced the air-fried Cajun chicken with a grilled version marinated in apple cider vinegar + lime. Macros are unchanged (270 cal / 35P / 17C / 8F per chalupa) — the ACV, lime, and spices are essentially zero. If you add the optional 1 Tbsp oil to the marinade, that's ~14g fat spread across the whole 907g batch, so only a few extra grams of fat per chalupa.\n\nBATCH NOTE: Ingredient amounts are the full master batch — the elote sauce, pico, and chicken make plenty beyond 2 chalupas (great for meal prep). The in-app serving scaler is approximate for this multi-component recipe; treat the quantities as the master batch."}`);
+      if(!recipes.some(r=>r.id===SEED.id)){ recipes.push(SEED); save(); }
+      store.set("bhr-seed-chalupa-grilled", true);
+    }
+  } catch(e) {}
+})();
 function render() { const r=document.getElementById("root"); r.innerHTML=""; r.appendChild(buildView()); }
 
 // ── Components ───────────────────────────────────────────────────────────────
@@ -189,10 +226,19 @@ function buildList() {
         ),
         el("div",{style:{fontSize:11,color:C.muted,marginTop:2}},`${recipes.length} saved · macros tracked`)
       ),
-      el("button",{
-        style:{background:C.orange,border:"none",color:"#fff",borderRadius:22,padding:"10px 18px",cursor:"pointer",fontWeight:700,fontSize:14},
-        onClick:()=>{editing=null;view="form";render();}
-      },"+ New")
+      (()=>{
+        const fileInput = el("input",{type:"file",accept:".json,application/json",style:{display:"none"},
+          onChange:(e)=>{ if(e.target.files[0]){ importRecipes(e.target.files[0]); e.target.value=""; } }});
+        return el("div",{style:{display:"flex",flexWrap:"wrap",justifyContent:"flex-end",gap:8,alignItems:"center"}},
+          fileInput,
+          el("button",{style:{background:C.card,border:`1px solid ${C.border}`,color:C.text,borderRadius:22,padding:"9px 13px",cursor:"pointer",fontWeight:600,fontSize:13},
+            onClick:()=>fileInput.click()},"\u2b07 Import"),
+          el("button",{style:{background:C.card,border:`1px solid ${C.border}`,color:C.orange,borderRadius:22,padding:"9px 13px",cursor:"pointer",fontWeight:600,fontSize:13},
+            onClick:()=>exportRecipes()},"\u2b06 Export"),
+          el("button",{style:{background:C.orange,border:"none",color:"#fff",borderRadius:22,padding:"9px 16px",cursor:"pointer",fontWeight:700,fontSize:14},
+            onClick:()=>{editing=null;view="form";render();}},"+ New")
+        );
+      })()
     ),
     el("div",{style:{maxWidth:480,margin:"0 auto"}},
       el("input",{
